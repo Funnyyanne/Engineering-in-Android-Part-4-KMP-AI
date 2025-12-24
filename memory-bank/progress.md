@@ -1,0 +1,85 @@
+- 已阅读 lan-sys-design-document.md，并定位到以下关键部分：
+  - 2.1 高级架构图 (High-Level Architecture)
+  - 2.2 核心组件表格 (Core Components)
+  - 5.1/5.2 API 示例 (Upload/Generate/Download 请求与响应格式)
+- 已根据 `tech-stack.md` 和现有代码结构，在 `shared` 模块中初始化了文件解析器的存根 (`stub`)。
+  - 创建了 `FileParser` 接口和 `FileParserFactory` 对象。
+  - 定义了 `NotImplementedError` 作为解析器未实现的占位符。
+  - 添加了 `StubParser` 用于测试，并编写了单元测试验证其行为，确保测试通过。
+  - 统一了项目中的数据模型 (`Models.kt`) 和文件结构，解决了编译错误。
+- 在 `shared` 模块中连接了翻译引擎的存根 (`stub`)。
+  - 发现并复用了已有的 `TranslationEngine` 存根。
+  - 编写了新的单元测试 `TranslationEngineTest` 来验证该存根的行为，确保它能按预期为输入字符串加上语言代码前缀，测试通过。
+- 在 `shared` 模块中设置了文件生成器的存根 (`stub`)。
+  - 更新了已有的 `FileGenerator` 接口和 `SimpleXmlGenerator` 实现，使其与统一的 `TranslationKey` 数据模型保持一致。
+  - 编写了新的单元测试 `FileGeneratorTest` 来验证存根的行为，修复了实现中的错误并确保测试通过。
+- 在 Ktor 后端实现了上传接口的骨架 (`/api/v1/upload`)。
+  - 根据 `tech-stack.md` 的建议，重构了 Ktor 应用程序的路由结构，使用了插件和独立的路由文件。
+  - 定义了占位符响应，但由于服务器启动问题，测试尚未完成。
+- 在 Ktor 后端实现了生成接口的骨架 (`/api/v1/generate`)。
+  - 在现有路由结构中添加了新的 POST 占位符接口。
+  - 定义了占位符响应，但由于服务器启动问题，测试尚未完成。
+- 在 Compose for Web 中搭建了上传 UI 的脚手架。
+  - 根据 `tech-stack.md` 的示例，实现了文件拖放区域 (`FileDropZone`)。
+  - 根据用户提供的截图反馈，修复了图标和布局问题。
+- 在 Compose for Web 中搭建了生成设置 UI 的脚手架.
+  - 实现了包含目标语言选择的 `ConfigurationPanel`。
+  - 该功能作为上传界面的一部分，已满足当前阶段的要求。
+- 启动了本地基础设施服务 (PostgreSQL/Redis)。
+  - 根据 `tech-stack.md` 创建了 `docker-compose.yml` 和 `init.sql` 文件.
+  - 解决了 `docker compose` vs `docker-compose` 的命令问题，并成功使用 `docker-compose up -d` 启动了所有容器。
+  - 通过 `docker-compose ps` 验证了 `postgres` 和 `redis` 容器正在健康运行。
+- 验证了后端到数据库的连接。
+  - 向 `server/build.gradle.kts` 添加了必要的 Exposed 数据库依赖项。
+  - 创建了 `configureDatabase` Ktor 插件来初始化数据库连接池.
+  - 向 `/health` 端点添加了数据库连接健康检查逻辑。
+  - 成功地通过 `curl` 调用 `/health` 端点，确认数据库连接正常。
+- 执行了基础系统的端到端冒烟测试.
+  - 添加了 `/api/v1/download/{fileId}` 占位符接口以完成流程。
+  - 使用 `curl` 模拟了文件上传、翻译生成和文件下载的流程.
+  - 所有 API 端点均返回了预期的存根响应，验证了基本流程的连通性。
+- 增强了文件解析器 (JSON)。
+  - 在 `FileParser.kt` 中实现了 `JsonParser` 的解析和生成逻辑。
+  - 更新了 `FileParserFactory`，使其能够返回 `JsonParser` 实例来处理 `.json` 和 `.arb` 文件。
+  - 编写了 `JsonParserTest` 来验证 `JsonParser` 的正确行为。
+  - 更新了 `FileParserTest` 以适应 `JsonParser` 的实现，所有测试均已通过。
+- 集成了本地 MLX 模型进行翻译。
+  - 更新了 `TranslationService.kt` 以使用 Ktor 的 `HttpClient` 连接到本地 `mlx_lm.server` (端口 5002)。
+  - 配置了 JSON 序列化以忽略未知键 (`ignoreUnknownKeys = true`)，解决了与 `mlx_lm.server` 响应的兼容性问题.
+  - 优化了 Prompt 提示词，确保模型只输出翻译后的文本。
+  - 通过 `curl` 测试验证了 `/api/v1/generate` 端点能够正确调用本地模型并返回翻译结果。
+- 实现了对所有支持文件格式的生成。
+  - 在 `FileGenerator.kt` 中重构了 `FileGenerator` 接口和 `FileGeneratorFactory`。
+  - 实现了 `XmlGenerator`、`JsonGenerator`、`StringsGenerator` 和 `PropertiesGenerator`，覆盖了 XML, JSON, Strings, 和 Properties 格式。
+  - 编写了 `FileGeneratorFactoryTest` 来验证每种生成器产生的输出格式是否正确，测试全部通过。
+- 实现了数据库支持的翻译记忆 (Translation Memory)。
+  - 定义了 `TranslationMemory` 表结构并创建了 `TranslationMemoryRepository`。
+  - 更新了 `TranslationService` 以在调用 AI 之前先查询翻译记忆，并将新的翻译结果存入数据库中。
+- 完善了 Web 端 UI 并集成了端到端功能。
+  - 在 `App.kt` 中实现了完整的文件格式选择逻辑，允许用户为每种目标语言指定输出格式。
+  - 集成了 Ktor HTTP 客户端，实现了从前端直接触发翻译生成请求的功能。
+  - 使用 `expect`/`actual` 模式实现了跨平台的 `openFilePicker` 和 `downloadFile` 功能，使用户能够在 Web 端通过原生对话框选择文件并下载生成的 ZIP 包。
+  - 修复了 "Browse Files" 按钮失效的问题，并添加了生成过程中的加载状态指示。
+- 实现了批量处理功能 (Batch Processing)。
+  - 创建了 `BatchTranslationService` 来处理多语言生成和 ZIP 打包。
+  - 解决了由于相对路径导致的 ZIP 文件无法找到及格式损坏的问题，现统一使用用户目录下的绝对路径。
+  - 验证了 `/generate` 和 `/download` 接口的批量操作流程，成功生成并下载了包含多种语言和格式的翻译包。
+- 完成了 Web UI 的最终打磨与集成。
+  - 在 `App.kt` 中添加了对每种目标语言的文件格式选择功能。
+  - 集成了 Ktor 客户端以调用后端 `/generate` 接口，并实现了生成状态的加载指示。
+  - 实现了结果下载功能，用户点击下载按钮即可通过 `downloadFile` 获取生成的 ZIP 包。
+  - 整个系统现已完成闭环，支持从文件选择、参数配置、AI 翻译、批量生成到最终下载的全流程。
+- 增加了对纯文本文件 (.txt) 的支持。
+  - 更新了 `FileFormat` 枚举，新增了 `TXT` 格式。
+  - 在 `FileParser.kt` 中实现了 `PlainTextParser`，将整个文件内容作为一个翻译键处理。
+  - 在 `FileGenerator.kt` 中实现了 `PlainTextGenerator`，支持纯文本输出。
+  - 更新了 `FileParserFactory` 和 `FileGeneratorFactory` 以支持 `.txt` 扩展名。
+- 完成了 iOS 平台的适配支持。
+  - 在 `iosMain` 中实现了 `openFilePicker` 和 `downloadFile` 的 iOS 原生版本。
+  - `openFilePicker` 使用了 `UIDocumentPickerViewController` 来允许用户选择 localization 文件。
+  - `downloadFile` 使用了 `UIActivityViewController` 来允许用户分享或保存生成的 ZIP 包。
+  - 更新了 `iosApp/iosApp/Info.plist`，添加了 `NSAppTransportSecurity` 以允许连接到本地开发服务器 (`http://localhost:8080`)。
+- 进一步完善了 Web UI 的交互体验。
+  - 在 `App.kt` 中添加了上传过程中的 `isUploading` 状态，并引入了 `LinearProgressIndicator` 提供实时的上传反馈。
+  - 优化了 "Generate Translations" 按钮的逻辑：在上传未完成或生成任务进行中时自动禁用，并在生成时显示 "Generating..." 状态。
+  - 确保生成任务完成后，用户可以立即点击生成的下载链接，且按钮状态会正确重置以支持连续的任务提交。
