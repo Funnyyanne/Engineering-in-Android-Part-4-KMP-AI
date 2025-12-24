@@ -1,8 +1,8 @@
-# Multilingual Generation System
+# Multilingual Generation System (Vibe Coding & Gemini CIL to build)
 
 An intelligent, full-stack localization tool built with **Kotlin Multiplatform (KMP)** and powered by local AI. This system automates the translation of localization files (JSON, XML, etc.) into multiple languages and formats, ensuring privacy and efficiency.
 
-![Project Preview](Result1.png)
+![Project Preview](img.png)
 
 ## 🚀 Key Features
 
